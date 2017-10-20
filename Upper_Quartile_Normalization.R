@@ -29,9 +29,8 @@ for(i in 1:192){data[,i]<-data[,i]*mean_quart}
 
 data<-t(data)
 
-#outliers from this c("10007","6584","3454")
 
-Ext_list=c("10007","6584","3454")
+Ext_list=c("XXXXXX","XXXX","XXXX")
 
 data<-data[!rownames(data) %in% Ext_list,]
 fviz_pca_ind(prcomp(data))
