@@ -1,4 +1,4 @@
-setwd("C:/Users/hslansd/Desktop/")
+setwd("C:/Users/Desktop/")
 
 library(DESeq2)
 
@@ -73,7 +73,7 @@ sum(res$padj < 0.1, na.rm=TRUE)
 resOrdered = as.data.frame(res[order(res$padj),])
 resSig = subset(resOrdered, padj<0.05)
 
-write.table(resSig, file='AACrash_m6AP_Female_DEResults.csv',sep=',',quote=FALSE)
+write.table(resSig, file='m6AP_Female_DEResults.csv',sep=',',quote=FALSE)
 write.table(resSig, file='mf_sig_genes.txt',sep='\t',quote=FALSE)
 
 #Retrive Normalized counts for quality control analysis
