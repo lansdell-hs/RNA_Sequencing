@@ -1,0 +1,84 @@
+setwd("C:/Users/hslansd/Desktop/")
+
+library(DESeq2)
+
+
+
+data<-read.csv("TotalRNA_postproc_round.csv", header=TRUE, row.names = 1, stringsAsFactors = FALSE)
+colnames(data) <- substring(colnames(data), 2)
+
+#Creation of data sets from clinical sheets
+outcomes<-read.csv("Outcomes.csv", header=TRUE)
+
+#put in interaction terms and desired outcomes
+
+which(colData$wk6AP==0)
+
+sample_frame<-cbind(wk6AP=c(outcomes$Wk6_AP), sex=c(outcomes$PatientSex_Numeric))
+row.names(sample_frame)<-outcomes$ID
+
+
+colData<-sample_frame[(row.names(sample_frame) %in% keep_all),]
+colData<-colData[match(keep_all,row.names(colData)),]
+colData<-as.data.frame(colData)
+colData<-colData[complete.cases(colData),]
+
+#Drop any rows from outcome in main data set
+rows<-c(rownames(colData))
+data<-data[,names(data) %in% rows]
+
+all(rownames(colData)==colnames(data))
+
+#model for DESeq2
+colData$sex<-factor(colData$sex)
+dds<-DESeqDataSetFromMatrix(countData = data, colData = colData, design =~sex+m6_AP)
+
+
+#dds$condition <- factor(dds$condition, levels = c("no","yes"))
+
+dds<-DESeq(dds)
+res<-results(dds) #, cooksCutoff = FALSE)
+
+plotMA(res,ylim=c(-2,2))
+summary(res)
+sum(res$padj < 0.1, na.rm=TRUE)
+
+
+#logic for logfoldchanges
+logic<-resSig$log2FoldChange>abs(2) #change as desired
+resSiglfc<-resSig[logic,]
+
+#IF HIGH PERCENTAGE OF LOW COUNTS
+metadata(res)$alpha
+
+metadata(res)$filterThreshold
+
+plot(metadata(res)$filterNumRej, 
+     type="b", ylab="number of rejections",
+     xlab="quantiles of filter")
+lines(metadata(res)$lo.fit, col="red")
+abline(v=metadata(res)$filterTheta)
+
+#Run DESeq
+dds <- estimateSizeFactors(dds)
+keep <- rowSums(counts(dds, normalized=TRUE) >= 5) >= 65 #lowest sample size of group
+dds <- dds[keep,]
+res <- results(dds, independentFiltering=FALSE)
+sum(res$padj < 0.1, na.rm=TRUE)
+
+
+#Return to normal workflow
+
+
+resOrdered = as.data.frame(res[order(res$padj),])
+resSig = subset(resOrdered, padj<0.05)
+
+write.table(resSig, file='AACrash_m6AP_Female_DEResults.csv',sep=',',quote=FALSE)
+write.table(resSig, file='mf_sig_genes.txt',sep='\t',quote=FALSE)
+
+#Retrive Normalized counts for quality control analysis
+dds<-estimateSizeFactors(dds)
+c=counts(dds, normalized=TRUE)
+sF<-sizeFactors(dds)
+
+for(i in 1:180){c[,i]=c[,i]/sF[i]}
